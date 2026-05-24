@@ -1,11 +1,11 @@
 export type RoleTag =
-  | 'frontend'
-  | 'backend'
-  | 'fullstack'
-  | 'devops'
-  | 'mobile'
-  | 'data'
-  | 'ai';
+  | "frontend"
+  | "backend"
+  | "fullstack"
+  | "devops"
+  | "mobile"
+  | "data"
+  | "ai";
 
 export interface Achievement {
   text: string;

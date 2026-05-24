@@ -10,3 +10,4 @@ profile.json
 src/profiles/generated.ts
 .vscode
 .DS_Store
+.claude/
