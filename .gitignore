@@ -1,0 +1,12 @@
+node_modules
+dist
+exports
+.env
+.env.local
+job.txt
+profile.json
+.ai-response.json
+.ai-prompt.txt
+src/profiles/generated.ts
+.vscode
+.DS_Store
