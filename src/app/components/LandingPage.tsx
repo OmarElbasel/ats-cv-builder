@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import {
   FileText,
   Sparkles,
@@ -6,8 +7,15 @@ import {
   Settings,
   ArrowRight,
   Zap,
+  Download,
+  Upload,
 } from "lucide-react";
-import { getUserProfile, clearUserProfile } from "../../profiles";
+import {
+  getUserProfile,
+  clearUserProfile,
+  exportBackup,
+  importBackup,
+} from "../../profiles";
 
 type View = "setup" | "landing" | "generate" | "cv";
 
@@ -42,12 +50,45 @@ const features = [
 export function LandingPage({ onNavigate }: { onNavigate: (v: View) => void }) {
   const profile = getUserProfile();
   const name = profile?.header.name;
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function handleReset() {
     if (!confirm("This will clear all your saved CV data. Are you sure?"))
       return;
     clearUserProfile();
     onNavigate("setup");
+  }
+
+  function handleExport() {
+    const json = exportBackup();
+    const slug = (name || "cv").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    const date = new Date().toISOString().slice(0, 10);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${slug}-cv-backup-${date}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        importBackup(String(reader.result));
+        onNavigate("landing");
+        window.location.reload();
+      } catch (err) {
+        alert(
+          err instanceof Error ? err.message : "Could not import that file.",
+        );
+      }
+    };
+    reader.readAsText(file);
   }
 
   return (
@@ -141,14 +182,35 @@ export function LandingPage({ onNavigate }: { onNavigate: (v: View) => void }) {
       </section>
 
       {/* Footer */}
-      <footer className="max-w-3xl mx-auto px-6 py-8 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-gray-400">
+      <footer className="max-w-3xl mx-auto px-6 py-8 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-400">
         <span>Your CV data is stored only in this browser.</span>
-        <button
-          onClick={handleReset}
-          className="text-xs text-red-400 hover:text-red-600 transition-colors underline underline-offset-2"
-        >
-          Reset & start over
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={handleExport}
+            className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-900 transition-colors"
+          >
+            <Download className="w-3.5 h-3.5" /> Export backup
+          </button>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-900 transition-colors"
+          >
+            <Upload className="w-3.5 h-3.5" /> Import backup
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json,.json"
+            onChange={handleImportFile}
+            className="hidden"
+          />
+          <button
+            onClick={handleReset}
+            className="text-xs text-red-400 hover:text-red-600 transition-colors underline underline-offset-2"
+          >
+            Reset & start over
+          </button>
+        </div>
       </footer>
     </div>
   );

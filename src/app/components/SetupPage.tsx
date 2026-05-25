@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Plus,
   Trash2,
@@ -8,8 +8,9 @@ import {
   FileText,
   ArrowLeft,
   GripVertical,
+  Upload,
 } from "lucide-react";
-import { saveUserProfile, getUserProfile } from "../../profiles";
+import { saveUserProfile, getUserProfile, importBackup } from "../../profiles";
 import { getSectionMeta, normalizeSectionOrder } from "../../profiles/sections";
 import type {
   Profile,
@@ -405,6 +406,26 @@ export function SetupPage({
   const [certText, setCertText] = useState(() =>
     (getUserProfile()?.certifications ?? []).join("\n"),
   );
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        importBackup(String(reader.result));
+        onComplete();
+        window.location.reload();
+      } catch (err) {
+        alert(
+          err instanceof Error ? err.message : "Could not import that file.",
+        );
+      }
+    };
+    reader.readAsText(file);
+  }
 
   function setHeader(k: keyof Profile["header"], v: string) {
     setProfile((p) => ({ ...p, header: { ...p.header, [k]: v } }));
@@ -486,6 +507,20 @@ export function SetupPage({
               Your data stays in your browser — nothing is sent to a server.
             </p>
           </div>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 hover:border-gray-300 transition-colors"
+          >
+            <Upload className="w-3.5 h-3.5" /> Import backup
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json,.json"
+            onChange={handleImportFile}
+            className="hidden"
+          />
         </div>
       </header>
 
