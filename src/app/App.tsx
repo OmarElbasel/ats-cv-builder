@@ -27,7 +27,7 @@ function getView(): View {
 
 export default function App() {
   const [view, setView] = useState<View>(getView);
-  const hasProfile = Boolean(getUserProfile());
+  const [hasProfile, setHasProfile] = useState(Boolean(getUserProfile()));
 
   function navigate(v: View) {
     const url = new URL(window.location.href);
@@ -42,7 +42,10 @@ export default function App() {
   if (view === "setup" || !hasProfile) {
     return (
       <SetupPage
-        onComplete={() => navigate("landing")}
+        onComplete={() => {
+          setHasProfile(true);
+          navigate("landing");
+        }}
         onBack={hasProfile ? () => navigate("landing") : undefined}
       />
     );
