@@ -13,6 +13,8 @@ import {
   getActiveDensity,
   getUserProfile,
 } from "../profiles";
+import { getSectionMeta, normalizeSectionOrder } from "../profiles/sections";
+import type { SectionId } from "../profiles/types";
 
 type View = "setup" | "landing" | "generate" | "cv";
 
@@ -69,57 +71,76 @@ export default function App() {
         <div className="max-w-[850px] mx-auto bg-white print:max-w-full print:shadow-none print:mx-auto print:my-0 print:leading-tight">
           <CVHeader {...profile.header} />
 
-          <CVSection title="SUMMARY">
-            <p className="text-gray-700 leading-relaxed">{profile.summary}</p>
-          </CVSection>
+          {(() => {
+            const content: Partial<Record<SectionId, React.ReactNode>> = {};
 
-          <CVSection title="EXPERIENCE">
-            {profile.experiences.map((exp, i) => (
-              <ExperienceItem key={i} {...exp} emphasis={emphasis} />
-            ))}
-          </CVSection>
+            if (profile.summary?.trim())
+              content.summary = (
+                <p className="text-gray-700 leading-relaxed">
+                  {profile.summary}
+                </p>
+              );
 
-          <CVSection title="PROJECTS">
-            {profile.projects.map((p, i) => (
-              <ProjectItem key={i} {...p} emphasis={emphasis} />
-            ))}
-          </CVSection>
+            if (profile.experiences.length > 0)
+              content.experience = profile.experiences.map((exp, i) => (
+                <ExperienceItem key={i} {...exp} emphasis={emphasis} />
+              ));
 
-          <CVSection title="EDUCATION">
-            <div className="space-y-1">
-              {profile.education.map((e, i) => (
-                <div key={i} className="flex justify-between items-start">
-                  <div>
-                    <p className="text-gray-900">{e.degree}</p>
-                    <p className="text-gray-600">{e.school}</p>
-                  </div>
-                  <p className="text-gray-600">{e.year}</p>
+            if (profile.projects.length > 0)
+              content.projects = profile.projects.map((p, i) => (
+                <ProjectItem key={i} {...p} emphasis={emphasis} />
+              ));
+
+            if (profile.education.length > 0)
+              content.education = (
+                <div className="space-y-1">
+                  {profile.education.map((e, i) => (
+                    <div key={i} className="flex justify-between items-start">
+                      <div>
+                        <p className="text-gray-900">{e.degree}</p>
+                        <p className="text-gray-600">{e.school}</p>
+                      </div>
+                      <p className="text-gray-600">{e.year}</p>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </CVSection>
+              );
 
-          {profile.certifications.length > 0 && (
-            <CVSection title="CERTIFICATIONS">
-              <ul className="list-disc list-outside ml-5 space-y-1 print:space-y-0">
-                {profile.certifications.map((c, i) => (
-                  <li key={i} className="text-gray-700 text-sm">
-                    {c}
-                  </li>
-                ))}
-              </ul>
-            </CVSection>
-          )}
+            if (profile.certifications.length > 0)
+              content.certifications = (
+                <ul className="list-disc list-outside ml-5 space-y-1 print:space-y-0">
+                  {profile.certifications.map((c, i) => (
+                    <li key={i} className="text-gray-700 text-sm">
+                      {c}
+                    </li>
+                  ))}
+                </ul>
+              );
 
-          <CVSection title="SKILLS">
-            <SkillsGrid skills={profile.skills} emphasis={emphasis} />
-          </CVSection>
+            if (profile.skills.length > 0)
+              content.skills = (
+                <SkillsGrid skills={profile.skills} emphasis={emphasis} />
+              );
 
-          {profile.languages && (
-            <CVSection title="Languages" isLast>
-              <p className="text-gray-700">{profile.languages}</p>
-            </CVSection>
-          )}
+            if (profile.languages?.trim())
+              content.languages = (
+                <p className="text-gray-700">{profile.languages}</p>
+              );
+
+            const visible = normalizeSectionOrder(profile.sectionOrder).filter(
+              (id) => content[id] != null,
+            );
+
+            return visible.map((id, i) => (
+              <CVSection
+                key={id}
+                title={getSectionMeta(id).cvTitle}
+                isLast={i === visible.length - 1}
+              >
+                {content[id]}
+              </CVSection>
+            ));
+          })()}
         </div>
       </div>
     );

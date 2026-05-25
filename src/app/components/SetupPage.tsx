@@ -7,14 +7,17 @@ import {
   ChevronUp,
   FileText,
   ArrowLeft,
+  GripVertical,
 } from "lucide-react";
 import { saveUserProfile, getUserProfile } from "../../profiles";
+import { getSectionMeta, normalizeSectionOrder } from "../../profiles/sections";
 import type {
   Profile,
   Experience,
   Project,
   Education,
   SkillRow,
+  SectionId,
 } from "../../profiles/types";
 
 const EMPTY_PROFILE: Profile = {
@@ -342,6 +345,50 @@ function ProjectEditor({
   );
 }
 
+function SectionOrderEditor({
+  order,
+  onChange,
+}: {
+  order: SectionId[];
+  onChange: (order: SectionId[]) => void;
+}) {
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+
+  function moveTo(target: number) {
+    if (dragIndex === null || dragIndex === target) return;
+    const next = [...order];
+    const [moved] = next.splice(dragIndex, 1);
+    next.splice(target, 0, moved);
+    setDragIndex(target);
+    onChange(next);
+  }
+
+  return (
+    <div className="space-y-2">
+      {order.map((id, i) => (
+        <div
+          key={id}
+          draggable
+          onDragStart={() => setDragIndex(i)}
+          onDragEnter={() => moveTo(i)}
+          onDragOver={(e) => e.preventDefault()}
+          onDragEnd={() => setDragIndex(null)}
+          className={`flex items-center gap-3 rounded-lg border px-4 py-3 cursor-grab active:cursor-grabbing transition-colors ${
+            dragIndex === i
+              ? "border-gray-400 bg-gray-50 opacity-60"
+              : "border-gray-200 bg-white hover:border-gray-300"
+          }`}
+        >
+          <GripVertical className="w-4 h-4 text-gray-400 shrink-0" />
+          <span className="text-sm font-medium text-gray-700">
+            {getSectionMeta(id).label}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function SetupPage({
   onComplete,
   onBack,
@@ -354,6 +401,10 @@ export function SetupPage({
   );
   const isEditing = Boolean(getUserProfile());
   const [error, setError] = useState("");
+  // Raw textarea text so newlines/spaces survive typing; cleaned at save.
+  const [certText, setCertText] = useState(() =>
+    (getUserProfile()?.certifications ?? []).join("\n"),
+  );
 
   function setHeader(k: keyof Profile["header"], v: string) {
     setProfile((p) => ({ ...p, header: { ...p.header, [k]: v } }));
@@ -375,12 +426,12 @@ export function SetupPage({
     setProfile((p) => ({ ...p, education }));
   }
 
-  function setCerts(certifications: string[]) {
-    setProfile((p) => ({ ...p, certifications }));
-  }
-
   function setSkills(skills: SkillRow[]) {
     setProfile((p) => ({ ...p, skills }));
+  }
+
+  function setSectionOrder(sectionOrder: SectionId[]) {
+    setProfile((p) => ({ ...p, sectionOrder }));
   }
 
   function validate(): boolean {
@@ -402,7 +453,11 @@ export function SetupPage({
   function handleSave() {
     if (!validate()) return;
     setError("");
-    saveUserProfile(profile);
+    const certifications = certText
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    saveUserProfile({ ...profile, certifications });
     onComplete();
   }
 
@@ -701,15 +756,8 @@ export function SetupPage({
           <SectionHeader title="Certifications" subtitle="One per line." />
           <TextArea
             label="Certifications"
-            value={profile.certifications.join("\n")}
-            onChange={(v) =>
-              setCerts(
-                v
-                  .split("\n")
-                  .map((s) => s.trim())
-                  .filter(Boolean),
-              )
-            }
+            value={certText}
+            onChange={setCertText}
             placeholder={
               "AWS Certified Solutions Architect\nGoogle Cloud Professional Data Engineer"
             }
@@ -727,6 +775,18 @@ export function SetupPage({
             onChange={(v) => setProfile((p) => ({ ...p, languages: v }))}
             placeholder="English (native), Spanish (conversational)"
             optional
+          />
+        </section>
+
+        {/* Section order */}
+        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <SectionHeader
+            title="Section order"
+            subtitle="Drag to reorder how sections appear on your CV. Empty sections are hidden automatically."
+          />
+          <SectionOrderEditor
+            order={normalizeSectionOrder(profile.sectionOrder)}
+            onChange={setSectionOrder}
           />
         </section>
 

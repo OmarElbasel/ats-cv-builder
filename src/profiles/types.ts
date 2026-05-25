@@ -64,4 +64,14 @@ export interface Profile {
   certifications: string[];
   skills: SkillRow[];
   languages: string;
+  sectionOrder?: SectionId[];
 }
+
+export type SectionId =
+  | "summary"
+  | "experience"
+  | "projects"
+  | "education"
+  | "certifications"
+  | "skills"
+  | "languages";
